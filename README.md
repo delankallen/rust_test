@@ -1,3 +1,19 @@
+# Requests
+## GET
+    /api/todo
+Get all todo items
+
+## POST
+    /api/newtodo
+POST new todo item by Title
+
+## DELETE
+    /api/removetodo
+Remove todo item with matching ID
+
+    /api/clearall
+Remove all todo items
+
 # LiveView Technologies WebDev Test
 Thank you for your interest in working with us in the LiveView Technologies Web Development team!
 
