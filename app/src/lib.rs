@@ -1,6 +1,6 @@
+use seed::browser::fetch;
 use seed::prelude::*;
 use seed::*;
-use seed::browser::fetch as fetch;
 
 const ENTER_KEY: &str = "Enter";
 
@@ -9,12 +9,12 @@ struct Model {
     items: Vec<Item>,
     new_item: String,
     error: Option<String>,
-    response_data: Option<String>
+    response_data: Option<String>,
 }
 
 struct Item {
     id: usize,
-    title: String
+    title: String,
 }
 
 enum Msg {
@@ -32,28 +32,31 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
     match msg {
         //---- API Response ----
         FetchedItems(resp) => match resp {
-            Ok(items) => model.items = items.iter().enumerate().map(|(i, title)| {                
-                Item {
-                    id: i,
-                    title: title.to_string()
-                }                
-            }).collect(),
+            Ok(items) => {
+                model.items = items
+                    .iter()
+                    .enumerate()
+                    .map(|(i, title)| Item {
+                        id: i,
+                        title: title.to_string(),
+                    })
+                    .collect()
+            }
             Err(e) => model.error = Some(format!("{:?}", e)),
-        }
+        },
 
         Fetched(resp) => match resp {
             Ok(response_data) => model.response_data = Some(response_data),
             Err(e) => model.error = Some(format!("{:?}", e)),
-        }
+        },
 
         //---- API Requests ----
-
         PostItem() => {
             let item = model.new_item.trim();
             if not(item.is_empty()) {
                 orders.perform_cmd({
                     let item = model.new_item.clone();
-                    async { 
+                    async {
                         Msg::Fetched(post_todo_item(item).await);
                         Msg::FetchedItems(get_todo_items().await)
                     }
@@ -64,41 +67,36 @@ fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
         RemoveItem(index) => {
             orders.perform_cmd({
-                async move { 
+                async move {
                     Msg::Fetched(remove_todo_item(index).await);
                     Msg::FetchedItems(get_todo_items().await)
                 }
-            });            
+            });
         }
 
         ClearAll() => {
-            orders.perform_cmd({                
+            orders.perform_cmd({
                 model.items.clear();
                 async {
                     Msg::Fetched(clear_all_items().await);
                 }
             });
         }
-        
-        //---- Input ----
 
+        //---- Input ----
         ItemTitleChanged(item_title) => {
             model.new_item = item_title;
-        },
+        }
     }
 }
 
 fn view(model: &Model) -> Node<Msg> {
     div![
-        div![
-            C!["card"],
-            div![
-                C!["main"],
-                view_header(),
-                view_todo_input(&model.new_item),
-            ],
+        C!["centered"],
+        div![C!["card"],
+            view_header(), 
+            view_todo_input(&model.new_item),
         ],
-
         view_items(&model.items)
     ]
 }
@@ -107,9 +105,9 @@ fn view_header() -> Node<Msg> {
     header![
         C!["header"],
         a![
-            attrs!{At::Href => "https://www.lvt.com/", At::Target => "_blank"},
+            attrs! {At::Href => "https://www.lvt.com/", At::Target => "_blank"},
             img![
-                attrs!{At::Alt => "LiveView logo", At::Src => "https://cameras.liveviewtech.com/img/LVLogo_small.png"}
+                attrs! {At::Alt => "LiveView logo", At::Src => "https://cameras.liveviewtech.com/img/LVLogo_small.png"}
             ]
         ],
         h1!["ToDo List"]
@@ -121,43 +119,40 @@ fn view_todo_input(new_item: &str) -> Node<Msg> {
         C!["container"],
         input![
             C!["todo-input"],
-            attrs!{At::Placeholder => "What to do?", At::AutoFocus => AtValue::None, At::Value => new_item },
+            attrs! {At::Placeholder => "What to do?", At::AutoFocus => AtValue::None, At::Value => new_item },
             input_ev(Ev::Input, Msg::ItemTitleChanged),
             keyboard_ev(Ev::KeyDown, |keyboard_event| {
                 IF!(keyboard_event.key() == ENTER_KEY => Msg::PostItem())
             })
         ],
         div![
-            button![
-                C!["btn"],
-                ev(Ev::Click, |_| Msg::PostItem()),
-                "Save"
-            ],
+            button![C!["btn"], ev(Ev::Click, |_| Msg::PostItem()), "Save"],
             button![
                 C!["btn clear-btn"],
                 ev(Ev::Click, |_| Msg::ClearAll()),
                 "Clear"
             ],
         ]
-        
     ]
 }
 
 fn view_items(items: &Vec<Item>) -> Node<Msg> {
-    ul![attrs!{At::Id => "item-list"},
-    items.iter().map(|item| {
-        let id = item.id.clone();
-        div![
-            li![
-                &item.title,
-                span![C!["remove-item"],
-                    "x",
-                    ev(Ev::Click, move |_| Msg::RemoveItem(id)),
-                ]
-            ]
+    footer![
+        ul![
+            attrs! {At::Id => "item-list"},
+            items.iter().map(|item| {
+                let id = item.id.clone();
+                div![li![
+                    &item.title,
+                    span![
+                        C!["remove-item"],
+                        "x",
+                        ev(Ev::Click, move |_| Msg::RemoveItem(id)),
+                    ]
+                ]]
+            })
         ]
-    })
-]
+    ]
 }
 
 async fn get_todo_items() -> fetch::Result<Vec<String>> {
